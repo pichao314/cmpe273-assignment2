@@ -1,4 +1,4 @@
-from flask import Flask, escape, request, jsonify
+from flask import Flask, escape, request, jsonify,json
 import sqlite3
 
 app = Flask(__name__)
@@ -13,28 +13,37 @@ def hello():
 process new test
 """
 
-# get test id by subject name
-def getId(subject_name,db):
-    for test in db:
-        # found test
-        if test['subject'] == subject_name:
-            return test["test_id"]
-    # test not found
-    return -1
+# # get test id by subject name
+# def getId(subject_name,db):
+#     for test in db:
+#         # found test
+#         if test['subject'] == subject_name:
+#             return test["test_id"]
+#     # test not found
+#     return -1
 
 # create a new test by request
-def create_test(info,db):
-    # check if the test existed
-    tid = getId(info['subject'],db)
-    if tid<0:
-        tid = len(db)
-        db.append({})
-    # update or add new test
-    db[tid]['test_id'] = tid
-    db[tid]['subject'] = info['subject']
-    db[tid]['answer_keys'] = info['answer_keys']
-    db[tid]['submissions'] = []
-    return db[tid]
+def create_test(info):
+    keys = json.dumps(info['answer_keys'])
+    conn = sqlite3.connect('tests.db')
+    cur = conn.cursor()
+    q1 = "SELECT * FROM test WHERE subject=?;"
+    cur.execute(q1,(info['subject'],))
+    val = cur.fetchall()
+    if not val:
+        query = "INSERT INTO test VALUES (null,?,?);"
+        cur.execute(query,(info['subject'],keys))
+    else:
+        query = "UPDATE test SET answer_keys=? WHERE subject=?;"
+        cur.execute(query,(keys,info['subject']))
+    cur.execute(q1,(info['subject'],))
+    val = list(cur.fetchall()[0])
+    cur.close()
+    conn.commit()
+    conn.close()
+    print(val[0])
+    val[-1] = json.loads(val[-1])
+    return val
 
 # post a new test
 @app.route('/tests', methods=['POST'])
@@ -42,7 +51,7 @@ def post_test():
     if not request.json:
         return "Wrong Value"
     info = request.json
-    return jsonify(create_test(info,db)),201
+    return jsonify(create_test(info)),201
 
 """
 process new submission
