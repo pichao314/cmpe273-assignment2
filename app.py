@@ -1,4 +1,5 @@
 from flask import Flask, escape, request, jsonify
+import sqlite3
 
 app = Flask(__name__)
 
@@ -7,18 +8,6 @@ def hello():
     name = request.args.get("name", "World")
     return f'Hello, {escape(name)}!'
 
-#todo use sqlite to store the data
-# store all tests
-db = [{
-    "test_id":0,
-    "subject":"Mock",
-    "answer_keys":{
-        "1":"A",
-        "2":"A",
-        "3":"A"
-    },
-    "submissions":[]
-}]
 
 """
 process new test
