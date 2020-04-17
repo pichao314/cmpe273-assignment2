@@ -1,7 +1,14 @@
-from flask import Flask, escape, request, jsonify,json
-import sqlite3
+from flask import Flask, escape, request, jsonify, send_file
+import sqlite3, json
+import logging
+
+logging.basicConfig(level=logging.INFO,
+                    filename='err.log',
+                    filemode='w',
+                    format='%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s')
 
 app = Flask(__name__)
+
 
 @app.route('/')
 def hello():
@@ -12,6 +19,15 @@ def hello():
 """
 process new test
 """
+
+
+# convert returned tuple from sqlite into json format
+def tuple2json(tuple, column_name):
+    res = {}
+    for i, v in enumerate(column_name):
+        res[v] = tuple[i]
+    return res
+
 
 # # get test id by subject name
 # def getId(subject_name,db):
@@ -28,22 +44,25 @@ def create_test(info):
     conn = sqlite3.connect('tests.db')
     cur = conn.cursor()
     q1 = "SELECT * FROM test WHERE subject=?;"
-    cur.execute(q1,(info['subject'],))
+    cur.execute(q1, (info['subject'],))
     val = cur.fetchall()
     if not val:
         query = "INSERT INTO test VALUES (null,?,?);"
-        cur.execute(query,(info['subject'],keys))
+        cur.execute(query, (info['subject'], keys))
     else:
         query = "UPDATE test SET answer_keys=? WHERE subject=?;"
-        cur.execute(query,(keys,info['subject']))
-    cur.execute(q1,(info['subject'],))
-    val = list(cur.fetchall()[0])
+        cur.execute(query, (keys, info['subject']))
+    cur.execute(q1, (info['subject'],))
+    val = cur.fetchone()
     cur.close()
     conn.commit()
     conn.close()
-    print(val[0])
-    val[-1] = json.loads(val[-1])
+    val = tuple2json(val, ['test_id', 'subject', 'answer_keys'])
+    # deserialize the answer key
+    val['answer_keys'] = json.loads(val['answer_keys'])
+    val['submissions'] = []
     return val
+
 
 # post a new test
 @app.route('/tests', methods=['POST'])
@@ -51,62 +70,113 @@ def post_test():
     if not request.json:
         return "Wrong Value"
     info = request.json
-    return jsonify(create_test(info)),201
+    return jsonify(create_test(info)), 201
+
 
 """
 process new submission
 """
 
-#todo use ocr to read actual input
+
+# todo use ocr to read actual input
 # convert a pdf file into json format submissions
 def pdf2json(pdf):
     submission = {
-        "subject":pdf["subject"],
-        "name":pdf["name"],
-        "answer":pdf["answer"]
+        "subject": pdf["subject"],
+        "name": pdf["name"],
+        "answer": pdf["answer"]
     }
     return submission
 
 
-# grade a submission, add the submission into test db
-def grade(submission,db,tid):
-    # tid = getId(submission['subject'],db)
-    # if not tid:
-    #     return False
-    result = {
-        "scantron_id": 1,
-        "scantron_url": "http://localhost:5000/files/1.pdf",
-        "name": submission['name'],
-        "subject": submission['subject'],
-        "result": {}
-    }
+# get submission by test
+
+
+# grade a submission, add the submission into table
+def grade(submission, tid):
+    # grade and create result
+    # res with actual and expected key
+    res = {}
+    conn = sqlite3.connect('tests.db')
+    cur = conn.cursor()
+    # select the test
+    get_test = "SELECT * FROM test WHERE test_id=?;"
+    cur.execute(get_test, (tid,))
+    test = cur.fetchone()
+    test = tuple2json(test, ['test_id', 'subject', 'answer_keys'])
+    test['answer_keys'] = json.loads(test['answer_keys'])
+    # calculate the score
     score = 0
-    for k,v in db[tid]['answer_keys'].items():
-        sv = submission["answer"][k]
-        result["result"][k] = {
-            "actual":sv,
-            "expected":v
-        }
-        if sv == v:
+    for k, v in test['answer_keys'].items():
+        s_v = submission['answer'][k]
+        if v == s_v:
             score += 1
-    result["score"] = score
-    db[tid]["submissions"].append(result)
-    return result
+        res[k] = {
+            "actual": s_v,
+            "expected": v
+        }
+    # insert submission into table
+    add_sub = "INSERT INTO submission VALUES (null, ?,?,?,?,?);"
+    loc = ""
+    cur.execute(add_sub, (loc, submission['subject'], submission['name'], score, json.dumps(res)))
+    sid = cur.lastrowid
+    logging.info("current row is %s" % sid)
+    with open('files/%s.json' % sid, 'w') as f:
+        json.dump(submission, f)
+    # update the file location
+    upd = "UPDATE submission SET scantron_url=? WHERE scantron_id=?;"
+    loc = "http://localhost:5000/files/%s.json" % sid
+    cur.execute(upd, (loc, sid))
+    # return the submission
+    get_sub = "SELECT * FROM submission WHERE scantron_id=?"
+    cur.execute(get_sub, (sid,))
+    sc = cur.fetchone()
+    cur.close()
+    conn.commit()
+    conn.close()
+    sc = tuple2json(sc, ['scantron_id', 'scantron_url', 'subject', 'name', 'score', 'result'])
+    sc['result'] = json.loads(sc['result'])
+    return sc
+
+
+@app.route('/files/<string:fname>')
+def get_file(fname):
+    return send_file('files/%s' % fname, as_attachment=True, attachment_filename=fname)
+
 
 # post a pdf submission and return the result
-@app.route('/tests/<int:id>/scantrons',methods=['POST'])
-def post_sub(id):
-    if id >= len(db):
-        return "Test not exist!"
-    tid = id
+@app.route('/tests/<int:tid>/scantrons', methods=['POST'])
+def post_sub(tid):
     # todo change input into pdf
     pdf = request.json
     submission = pdf2json(pdf)
-    return grade(submission,db,tid),201
+    return grade(submission, tid), 201
 
-# get all scantron submissions
-@app.route('/tests/<int:id>')
-def get(id):
-    if id >= len(db):
-        return "Test not exist!"
-    return jsonify(db[id])
+
+# get all scantron submissions of a test
+@app.route('/tests/<int:tid>')
+def get(tid):
+    conn = sqlite3.connect('tests.db')
+    cur = conn.cursor()
+    # get the test
+    get_test = "SELECT * FROM test WHERE test_id=?"
+    cur.execute(get_test, (tid,))
+    test = cur.fetchone()
+    if not test:
+        return "Test not found!", 404
+    res = tuple2json(test, ['test_id', 'subject', 'answer_keys'])
+    res['answer_keys'] = json.loads(res['answer_keys'])
+    # get the related submissions
+    get_subs = "SELECT * FROM submission WHERE subject=?"
+    cur.execute(get_subs, (res['subject'],))
+    scan = cur.fetchall()
+    cur.close()
+    conn.commit()
+    conn.close()
+    subs = []
+    for sc in scan:
+        sc = tuple2json(sc, ['scantron_id', 'scantron_url', 'subject', 'name', 'score', 'result'])
+        sc['result'] = json.loads(sc['result'])
+        subs.append(sc)
+    res['submissions'] = subs
+    return res

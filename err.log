@@ -1,0 +1,16 @@
+2020-04-17 02:54:49,464 - /Users/pichao/.pyenv/versions/3.8.1/lib/python3.8/site-packages/werkzeug/_internal.py[line:113] - INFO:  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+2020-04-17 02:54:54,980 - /Users/pichao/.pyenv/versions/3.8.1/lib/python3.8/site-packages/werkzeug/_internal.py[line:113] - INFO: 127.0.0.1 - - [17/Apr/2020 02:54:54] "[37mGET /files/1.json HTTP/1.1[0m" 200 -
+2020-04-17 02:55:08,787 - /Users/pichao/.pyenv/versions/3.8.1/lib/python3.8/site-packages/werkzeug/_internal.py[line:113] - INFO: 127.0.0.1 - - [17/Apr/2020 02:55:08] "[37mPOST /tests HTTP/1.1[0m" 201 -
+2020-04-17 02:55:09,745 - /Users/pichao/.pyenv/versions/3.8.1/lib/python3.8/site-packages/werkzeug/_internal.py[line:113] - INFO: 127.0.0.1 - - [17/Apr/2020 02:55:09] "[37mPOST /tests HTTP/1.1[0m" 201 -
+2020-04-17 02:55:11,962 - /Users/pichao/Source/cmpe273-assignment2/app.py[line:123] - INFO: current row is 1
+2020-04-17 02:55:11,964 - /Users/pichao/.pyenv/versions/3.8.1/lib/python3.8/site-packages/werkzeug/_internal.py[line:113] - INFO: 127.0.0.1 - - [17/Apr/2020 02:55:11] "[37mPOST /tests/1/scantrons HTTP/1.1[0m" 201 -
+2020-04-17 02:55:12,445 - /Users/pichao/Source/cmpe273-assignment2/app.py[line:123] - INFO: current row is 2
+2020-04-17 02:55:12,447 - /Users/pichao/.pyenv/versions/3.8.1/lib/python3.8/site-packages/werkzeug/_internal.py[line:113] - INFO: 127.0.0.1 - - [17/Apr/2020 02:55:12] "[37mPOST /tests/1/scantrons HTTP/1.1[0m" 201 -
+2020-04-17 02:55:14,484 - /Users/pichao/Source/cmpe273-assignment2/app.py[line:123] - INFO: current row is 3
+2020-04-17 02:55:14,486 - /Users/pichao/.pyenv/versions/3.8.1/lib/python3.8/site-packages/werkzeug/_internal.py[line:113] - INFO: 127.0.0.1 - - [17/Apr/2020 02:55:14] "[37mPOST /tests/1/scantrons HTTP/1.1[0m" 201 -
+2020-04-17 02:55:14,767 - /Users/pichao/Source/cmpe273-assignment2/app.py[line:123] - INFO: current row is 4
+2020-04-17 02:55:14,769 - /Users/pichao/.pyenv/versions/3.8.1/lib/python3.8/site-packages/werkzeug/_internal.py[line:113] - INFO: 127.0.0.1 - - [17/Apr/2020 02:55:14] "[37mPOST /tests/1/scantrons HTTP/1.1[0m" 201 -
+2020-04-17 02:55:15,207 - /Users/pichao/Source/cmpe273-assignment2/app.py[line:123] - INFO: current row is 5
+2020-04-17 02:55:15,209 - /Users/pichao/.pyenv/versions/3.8.1/lib/python3.8/site-packages/werkzeug/_internal.py[line:113] - INFO: 127.0.0.1 - - [17/Apr/2020 02:55:15] "[37mPOST /tests/1/scantrons HTTP/1.1[0m" 201 -
+2020-04-17 02:55:18,095 - /Users/pichao/.pyenv/versions/3.8.1/lib/python3.8/site-packages/werkzeug/_internal.py[line:113] - INFO: 127.0.0.1 - - [17/Apr/2020 02:55:18] "[37mGET /tests/1 HTTP/1.1[0m" 200 -
+2020-04-17 02:55:23,509 - /Users/pichao/.pyenv/versions/3.8.1/lib/python3.8/site-packages/werkzeug/_internal.py[line:113] - INFO: 127.0.0.1 - - [17/Apr/2020 02:55:23] "[37mGET /files/5.json HTTP/1.1[0m" 200 -
