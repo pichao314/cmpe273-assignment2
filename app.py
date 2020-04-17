@@ -7,9 +7,10 @@ def hello():
     name = request.args.get("name", "World")
     return f'Hello, {escape(name)}!'
 
+#todo use sqlite to store the data
 # store all tests
 db = [{
-    "test_id":1,
+    "test_id":0,
     "subject":"Mock",
     "answer_keys":{
         "1":"A",
@@ -30,24 +31,24 @@ def getId(subject_name,db):
         if test['subject'] == subject_name:
             return test["test_id"]
     # test not found
-    return False
+    return -1
 
 # create a new test by request
 def create_test(info,db):
     # check if the test existed
     tid = getId(info['subject'],db)
-    if not tid:
-        tid = len(db) + 1
+    if tid<0:
+        tid = len(db)
         db.append({})
     # update or add new test
-    db[tid-1]['test_id'] = tid
-    db[tid-1]['subject'] = info['subject']
-    db[tid-1]['answer_keys'] = info['answer_keys']
-    db[tid-1]['submissions'] = []
-    return db[tid-1]
+    db[tid]['test_id'] = tid
+    db[tid]['subject'] = info['subject']
+    db[tid]['answer_keys'] = info['answer_keys']
+    db[tid]['submissions'] = []
+    return db[tid]
 
 # post a new test
-@app.route('/tests', method=['POST'])
+@app.route('/tests', methods=['POST'])
 def post_test():
     if not request.json:
         return "Wrong Value"
@@ -58,16 +59,13 @@ def post_test():
 process new submission
 """
 
+#todo use ocr to read actual input
 # convert a pdf file into json format submissions
 def pdf2json(pdf):
     submission = {
-        "subject":"unknown",
-        "name":"unknown",
-        "answer":{
-            "1":"A",
-            "2":"B",
-            "3":"C"
-        }
+        "subject":pdf["subject"],
+        "name":pdf["name"],
+        "answer":pdf["answer"]
     }
     return submission
 
@@ -85,7 +83,7 @@ def grade(submission,db,tid):
         "result": {}
     }
     score = 0
-    for k,v in db[tid-1]['answer_keys'].items():
+    for k,v in db[tid]['answer_keys'].items():
         sv = submission["answer"][k]
         result["result"][k] = {
             "actual":sv,
@@ -94,18 +92,23 @@ def grade(submission,db,tid):
         if sv == v:
             score += 1
     result["score"] = score
-    db[tid-1]["submissions"].append(result)
+    db[tid]["submissions"].append(result)
     return result
 
 # post a pdf submission and return the result
-@app.route('/tests/<int:id>/scantrons',method=['POST'])
+@app.route('/tests/<int:id>/scantrons',methods=['POST'])
 def post_sub(id):
+    if id >= len(db):
+        return "Test not exist!"
     tid = id
-    pdf = request.body
+    # todo change input into pdf
+    pdf = request.json
     submission = pdf2json(pdf)
-    return grade(submission,db,tid)
+    return grade(submission,db,tid),201
 
 # get all scantron submissions
 @app.route('/tests/<int:id>')
 def get(id):
-    return jsonify(db[id-1])
+    if id >= len(db):
+        return "Test not exist!"
+    return jsonify(db[id])
