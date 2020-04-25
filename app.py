@@ -115,14 +115,14 @@ def grade(submission, tid):
     test = tuple2json(test, ['test_id', 'subject', 'answer_keys'])
     # first validate the subject name
     if test['subject'] != submission['subject']:
-        return "Submission for wrong test %s!" % test['subject']
+        return "Submit for test %s! but get %s" % (test['subject'], submission['subject'])
     test['answer_keys'] = json.loads(test['answer_keys'])
     # calculate the score
     score = 0
     for k, v in test['answer_keys'].items():
         s_v = submission['answers'][k]
         if not valid(s_v):
-            return "Wrong Format at number %s" % (int(k) + 1)
+            return "Wrong Format at number %s" % k
         if v == s_v:
             score += 1
         res[k] = {
