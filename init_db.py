@@ -1,4 +1,7 @@
-import os, sqlite3, json
+import json
+import os
+import random
+import sqlite3
 
 db_file = os.path.join(os.path.dirname(__file__), 'tests.db')
 if os.path.isfile(db_file):
@@ -12,7 +15,7 @@ init_test = "CREATE TABLE test(\
     subject VARCHAR(20),\
     answer_keys VARCHAR(1000))"
 
-ans_key = json.dumps({str(k): ['A', 'B', 'C', 'D'][k % 4] for k in range(50)})
+ans_key = json.dumps({str(k): ['A', 'B', 'C', 'D'][random.randint(0, 3)] for k in range(50)})
 
 insert_test = "INSERT INTO test\
     VALUES (null,'Test',?)"
@@ -25,7 +28,7 @@ init_sub = "CREATE TABLE submission(\
     score INTEGER,\
     result VARCHAR(1000))"
 
-sub_key = json.dumps({str(k): ['A', 'A', 'C', 'C'][k % 4] for k in range(50)})
+sub_key = json.dumps({str(k): ['A', 'B', 'C', 'D'][random.randint(0, 3)] for k in range(50)})
 insert_sub = "INSERT INTO submission\
     VALUES (null,'http://1.pdf','foo','bar',25,?)"
 

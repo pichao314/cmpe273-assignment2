@@ -1,10 +1,12 @@
-from flask import Flask, escape, request, jsonify, send_file
-import sqlite3, json
+import json
 import logging
+import sqlite3
+
+from flask import Flask, escape, request, jsonify, send_file
 
 logging.basicConfig(level=logging.INFO,
                     filename='err.log',
-                    filemode='w',
+                    filemode='a',
                     format='%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s')
 
 app = Flask(__name__)
@@ -22,10 +24,10 @@ process new test
 
 
 # convert returned tuple from sqlite into json format
-def tuple2json(tuple, column_name):
+def tuple2json(tp, column_name):
     res = {}
     for i, v in enumerate(column_name):
-        res[v] = tuple[i]
+        res[v] = tp[i]
     return res
 
 
@@ -78,8 +80,8 @@ process new submission
 """
 
 
-# todo use ocr to read actual input
-# convert a pdf file into json format submissions
+# convert json file into dic if need
+# read a json file
 def pdf2json(pdf):
     submission = {
         "subject": pdf["subject"],
@@ -89,10 +91,17 @@ def pdf2json(pdf):
     return submission
 
 
+# validate a char
+def valid(s):
+    if not str.isalpha(s):
+        return False
+    return 'A' <= s <= 'D'
+
+
 # get submission by test
 
 
-# grade a submission, add the submission into table
+# validate and grade a submission, if valid add the submission into table
 def grade(submission, tid):
     # grade and create result
     # res with actual and expected key
@@ -104,11 +113,16 @@ def grade(submission, tid):
     cur.execute(get_test, (tid,))
     test = cur.fetchone()
     test = tuple2json(test, ['test_id', 'subject', 'answer_keys'])
+    # first validate the subject name
+    if test['subject'] != submission['subject']:
+        return "Submission for wrong test %s!" % test['subject']
     test['answer_keys'] = json.loads(test['answer_keys'])
     # calculate the score
     score = 0
     for k, v in test['answer_keys'].items():
-        s_v = submission['answer'][k]
+        s_v = submission['answers'][k]
+        if not valid(s_v):
+            return "Wrong Format at number %s" % (int(k) + 1)
         if v == s_v:
             score += 1
         res[k] = {
@@ -147,10 +161,19 @@ def get_file(fname):
 # post a pdf submission and return the result
 @app.route('/tests/<int:tid>/scantrons', methods=['POST'])
 def post_sub(tid):
-    # todo change input into pdf
-    pdf = request.json
-    submission = pdf2json(pdf)
-    return grade(submission, tid), 201
+    # get file data
+    # return "nothing",200
+    sub = request.files['data']
+    sub.seek(0)
+    sf = sub.read()
+    dc = sf.decode()
+    js = json.loads(dc)
+    # logging.info("The received type is %s" % type(sub))
+    # logging.info("The read type is %s" % type(sf))
+    # logging.info("The decoded type is %s" % type(dc))
+    # logging.info("The loaded type is %s" % type(js))
+
+    return grade(js, tid), 201
 
 
 # get all scantron submissions of a test
